@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Price Impact Dashboard</title>
+</head>
+<body>
+    <h1>Price Impact Simulator</h1>
+    <label for="item">Select a price item:</label>
+    <select id="item"></select>
+    <label for="price">New price ($):</label>
+    <input type="number" id="price" step="0.01" value="1.00">
+    <button onclick="simulate()">Simulate</button>
+
+    <h2>Predicted Impact:</h2>
+    <div id="results"></div>
+
+    <script>
+        const itemDropdown = document.getElementById("item");
+        const resultsDiv = document.getElementById("results");
+
+        fetch("/")
+          .then(response => response.text())
+          .then(html => {
+              document.open(); document.write(html); document.close();
+          });
+
+        function simulate() {
+            const item = itemDropdown.value;
+            const price = document.getElementById("price").value;
+
+            fetch("/predict", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({item: item, price: price})
+            })
+            .then(res => res.json())
+            .then(data => {
+                let html = "<ul>";
+                data.forEach(row => {
+                    html += `<li>${row.sales_item}: ${row.predicted_change.toFixed(2)} units</li>`;
+                });
+                html += "</ul>";
+                resultsDiv.innerHTML = html;
+            });
+        }
+    </script>
+</body>
+</html>
