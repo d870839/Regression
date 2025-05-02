@@ -1,26 +1,28 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
-import pandas as pd
 import os
 import uuid
-from regression_pipeline import run_regression_pipeline  # your core logic
+import pandas as pd
+from regression_pipeline import run_regression_pipeline
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Store regression results globally for simplicity
 regression_results = pd.DataFrame()
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    if request.method == 'POST':
-        file = request.files['csv']
-        if file and file.filename.endswith('.csv'):
-            filename = str(uuid.uuid4()) + '.csv'
-            path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(path)
+    global regression_results
 
-            global regression_results
-            regression_results = run_regression_pipeline(path)
+    if request.method == 'POST':
+        file = request.files.get('csv_file')
+        if file and file.filename.endswith('.csv'):
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{uuid.uuid4()}.csv")
+            file.save(filepath)
+
+            regression_results = run_regression_pipeline(filepath)
+            if regression_results.empty:
+                return "No significant relationships found. Please upload a different file.", 400
 
             return redirect(url_for('dashboard'))
 
@@ -28,15 +30,20 @@ def index():
 
 @app.route('/dashboard')
 def dashboard():
+    global regression_results
     if regression_results.empty:
         return redirect(url_for('index'))
+
     items = sorted(regression_results['price_item'].unique())
     return render_template('dashboard.html', items=items)
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    item = request.json['item']
-    new_price = float(request.json['price'])
+    global regression_results
+
+    data = request.get_json()
+    item = data['item']
+    new_price = float(data['price'])
 
     filtered = regression_results[regression_results['price_item'] == item].copy()
     filtered['predicted_change'] = (new_price - 1.0) * 10 * filtered['coefficient_per_dime']
