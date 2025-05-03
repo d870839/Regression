@@ -22,7 +22,7 @@
     function simulate() {
       const item = document.getElementById('item').value;
       const price = document.getElementById('price').value;
-
+  
       fetch("/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -32,12 +32,15 @@
       .then(data => {
         let html = "<h2>Predicted Sales Changes</h2><ul>";
         data.forEach(d => {
-          html += `<li>${d.sales_item}: ${d.predicted_change.toFixed(2)} units</li>`;
+          html += `<li><strong>${d.sales_item}</strong>  
+                   (R²=${d.r_squared.toFixed(2)}, p=${d.p_value.toFixed(3)}):  
+                   ${d.predicted_change.toFixed(2)} units</li>`;
         });
         html += "</ul>";
         document.getElementById('results').innerHTML = html;
       });
     }
   </script>
+  
 </body>
 </html>

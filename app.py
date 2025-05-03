@@ -48,8 +48,12 @@ def predict():
     filtered = regression_results[regression_results['price_item'] == item].copy()
     filtered['predicted_change'] = (new_price - 1.0) * 10 * filtered['coefficient_per_dime']
 
+    # ✅ Filter: keep only highly significant relationships
+    filtered = filtered[filtered['p_value'] < 0.0005]
+
+    # ✅ Sort descending by predicted change
     filtered = filtered.sort_values(by='predicted_change', ascending=False)
-    
+
     return jsonify(filtered.to_dict(orient='records'))
 
 if __name__ == '__main__':
